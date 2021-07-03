@@ -1,3 +1,5 @@
+using API.CongestionTax.Business.Business;
+using API.CongestionTax.Business.Interfaces;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -19,12 +21,13 @@ namespace API.CongestionTax.Web
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
-
       services.AddControllers();
       services.AddSwaggerGen(c =>
       {
         c.SwaggerDoc("v1", new OpenApiInfo { Title = "API.CongestionTax", Version = "v1" });
       });
+
+      ConfigureDependencies(services);
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -47,6 +50,11 @@ namespace API.CongestionTax.Web
       {
         endpoints.MapControllers();
       });
+    }
+
+    private void ConfigureDependencies(IServiceCollection services)
+    {
+      services.AddTransient<ICongestionTaxCalculator, CongestionTaxCalculator>();
     }
   }
 }

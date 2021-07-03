@@ -1,12 +1,13 @@
 using API.CongestionTax.Business.DataObjects;
 using API.CongestionTax.Business.Extensions;
+using API.CongestionTax.Business.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace API.CongestionTax.Business.Business
 {
-  public class CongestionTaxCalculator
+  public class CongestionTaxCalculator : ICongestionTaxCalculator
   {
     private const int SingleChargeIntervalInMilliseconds = 60000; //1min
     private readonly VehicleType[] tollFreVehiclesTypes = new VehicleType[] {
