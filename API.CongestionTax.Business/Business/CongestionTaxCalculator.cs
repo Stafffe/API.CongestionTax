@@ -1,6 +1,9 @@
+using API.CongestionTax.Business.DataObjects;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
-namespace API.CongestionTax.Business
+namespace API.CongestionTax.Business.Business
 {
 
   public class CongestionTaxCalculator
@@ -13,48 +16,68 @@ namespace API.CongestionTax.Business
          * @return - the total congestion tax for that day
          */
 
+    private const int SingleChargeIntervalInMilliseconds = 60000; //1min
+    private readonly VehicleType[] TollFreVehiclesTypes = new VehicleType[] {
+      VehicleType.Motorcycle,
+      VehicleType.Tractor,
+      VehicleType.Emergency,
+      VehicleType.Diplomat,
+      VehicleType.Foreign,
+      VehicleType.Military
+    };
+
     public int GetTax(Vehicle vehicle, DateTime[] dates)
     {
-      DateTime intervalStart = dates[0];
-      int totalFee = 0;
-      foreach (DateTime date in dates)
+      dates = dates.OrderBy(d => d).ToArray();
+
+      var totalFee = GetTaxRecursive(dates, 0, vehicle);
+
+      return totalFee > 60 ? 60 : totalFee;
+    }
+
+    private int GetTaxRecursive(DateTime[] dates, int totalFee, Vehicle vehicle)
+    {
+      var datesWithin60Mins = GetDatesWithinInterval(dates);
+      var nextDatesToCheck = dates.Skip(datesWithin60Mins.Length).ToArray();
+
+      var highestFeeInInterval = 0;
+      foreach (var date in datesWithin60Mins)
       {
-        int nextFee = GetTollFee(date, vehicle);
-        int tempFee = GetTollFee(intervalStart, vehicle);
-
-        long diffInMillies = date.Millisecond - intervalStart.Millisecond;
-        long minutes = diffInMillies / 1000 / 60;
-
-        if (minutes <= 60)
-        {
-          if (totalFee > 0) totalFee -= tempFee;
-          if (nextFee >= tempFee) tempFee = nextFee;
-          totalFee += tempFee;
-        }
-        else
-        {
-          totalFee += nextFee;
-        }
+        var fee = GetTollFee(date, vehicle);
+        if (fee > highestFeeInInterval)
+          highestFeeInInterval = fee;
       }
-      if (totalFee > 60) totalFee = 60;
+
+      totalFee += highestFeeInInterval;
+
+      if (nextDatesToCheck.Length > 0)
+      {
+        totalFee += GetTaxRecursive(nextDatesToCheck, totalFee, vehicle);
+      }
+
       return totalFee;
     }
 
-    private bool IsTollFreeVehicle(Vehicle vehicle)
+    private DateTime[] GetDatesWithinInterval(DateTime[] dates)
     {
-      if (vehicle == null) return false;
-      String vehicleType = vehicle.GetVehicleType();
-      return vehicleType.Equals(TollFreeVehicles.Motorcycle.ToString()) ||
-             vehicleType.Equals(TollFreeVehicles.Tractor.ToString()) ||
-             vehicleType.Equals(TollFreeVehicles.Emergency.ToString()) ||
-             vehicleType.Equals(TollFreeVehicles.Diplomat.ToString()) ||
-             vehicleType.Equals(TollFreeVehicles.Foreign.ToString()) ||
-             vehicleType.Equals(TollFreeVehicles.Military.ToString());
+      var firstDate = dates[0];
+      var dateList = new List<DateTime> { firstDate };
+
+      foreach (var date in dates.Skip(1))
+      {
+        if (firstDate.Millisecond - date.Millisecond > SingleChargeIntervalInMilliseconds)
+          dateList.Add(date);
+        else
+          break;
+      }
+
+      return dateList.ToArray();
     }
 
-    public int GetTollFee(DateTime date, Vehicle vehicle)
+    private int GetTollFee(DateTime date, Vehicle vehicle)
     {
-      if (IsTollFreeDate(date) || IsTollFreeVehicle(vehicle)) return 0;
+      if (IsTollFreeDate(date) || IsTollFreeVehicle(vehicle))
+        return 0;
 
       int hour = date.Hour;
       int minute = date.Minute;
@@ -71,7 +94,12 @@ namespace API.CongestionTax.Business
       else return 0;
     }
 
-    private Boolean IsTollFreeDate(DateTime date)
+    private bool IsTollFreeVehicle(Vehicle vehicle)
+    {
+      return TollFreVehiclesTypes.Contains(vehicle.VehicleType);
+    }
+
+    private bool IsTollFreeDate(DateTime date)
     {
       int year = date.Year;
       int month = date.Month;
@@ -94,16 +122,6 @@ namespace API.CongestionTax.Business
         }
       }
       return false;
-    }
-
-    private enum TollFreeVehicles
-    {
-      Motorcycle = 0,
-      Tractor = 1,
-      Emergency = 2,
-      Diplomat = 3,
-      Foreign = 4,
-      Military = 5
     }
   }
 }
