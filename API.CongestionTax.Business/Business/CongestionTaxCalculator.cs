@@ -1,31 +1,44 @@
 using API.CongestionTax.Business.DataObjects;
+using API.CongestionTax.Business.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace API.CongestionTax.Business.Business
 {
-
   public class CongestionTaxCalculator
   {
-    /**
-         * Calculate the total toll fee for one day
-         *
-         * @param vehicle - the vehicle
-         * @param dates   - date and time of all passes on one day
-         * @return - the total congestion tax for that day
-         */
-
     private const int SingleChargeIntervalInMilliseconds = 60000; //1min
-    private readonly VehicleType[] TollFreVehiclesTypes = new VehicleType[] {
-      VehicleType.Motorcycle,
-      VehicleType.Tractor,
+    private readonly VehicleType[] tollFreVehiclesTypes = new VehicleType[] {
       VehicleType.Emergency,
+      VehicleType.Bus,
       VehicleType.Diplomat,
-      VehicleType.Foreign,
-      VehicleType.Military
+      VehicleType.Motorcycle,
+      VehicleType.Military,
+      VehicleType.Foreign
     };
+    private readonly DateTime[] holidays = new DateTime[] {
+        new DateTime(2013, 1, 1),
+        new DateTime(2013, 1, 6),
+        new DateTime(2013, 3, 29),
+        new DateTime(2013, 3, 31),
+        new DateTime(2013, 4, 1),
+        new DateTime(2013, 5, 1),
+        new DateTime(2013, 5, 9),
+        new DateTime(2013, 5, 19),
+        new DateTime(2013, 6, 6),
+        new DateTime(2013, 6, 22),
+        new DateTime(2013, 11, 2),
+        new DateTime(2013, 12, 25),
+        new DateTime(2013, 12, 26)
+      };
 
+    /// <summary>
+    /// Calculate the total toll fee for one day
+    /// </summary>
+    /// <param name="vehicle">The vehicle</param>
+    /// <param name="dates">Date and time of all passes on one day</param>
+    /// <returns>The total congestion tax for that day</returns>
     public int GetTax(Vehicle vehicle, DateTime[] dates)
     {
       dates = dates.OrderBy(d => d).ToArray();
@@ -79,49 +92,45 @@ namespace API.CongestionTax.Business.Business
       if (IsTollFreeDate(date) || IsTollFreeVehicle(vehicle))
         return 0;
 
-      int hour = date.Hour;
-      int minute = date.Minute;
+      var time = date.TimeOfDay;
 
-      if (hour == 6 && minute >= 0 && minute <= 29) return 8;
-      else if (hour == 6 && minute >= 30 && minute <= 59) return 13;
-      else if (hour == 7 && minute >= 0 && minute <= 59) return 18;
-      else if (hour == 8 && minute >= 0 && minute <= 29) return 13;
-      else if (hour >= 8 && hour <= 14 && minute >= 30 && minute <= 59) return 8;
-      else if (hour == 15 && minute >= 0 && minute <= 29) return 13;
-      else if (hour == 15 && minute >= 0 || hour == 16 && minute <= 59) return 18;
-      else if (hour == 17 && minute >= 0 && minute <= 59) return 13;
-      else if (hour == 18 && minute >= 0 && minute <= 29) return 8;
-      else return 0;
+      if (time.IsBetween(new TimeSpan(6, 00, 00), new TimeSpan(6, 29, 00)))
+        return 8;
+      else if (time.IsBetween(new TimeSpan(6, 30, 00), new TimeSpan(6, 59, 00)))
+        return 13;
+      else if (time.IsBetween(new TimeSpan(7, 00, 00), new TimeSpan(7, 59, 00)))
+        return 18;
+      else if (time.IsBetween(new TimeSpan(8, 00, 00), new TimeSpan(8, 29, 00)))
+        return 13;
+      else if (time.IsBetween(new TimeSpan(8, 30, 00), new TimeSpan(14, 59, 00)))
+        return 8;
+      else if (time.IsBetween(new TimeSpan(15, 00, 00), new TimeSpan(15, 29, 00)))
+        return 13;
+      else if (time.IsBetween(new TimeSpan(15, 30, 00), new TimeSpan(16, 59, 00)))
+        return 18;
+      else if (time.IsBetween(new TimeSpan(17, 00, 00), new TimeSpan(17, 59, 00)))
+        return 13;
+      else if (time.IsBetween(new TimeSpan(18, 00, 00), new TimeSpan(18, 29, 00)))
+        return 8;
+      else
+        return 0;
     }
 
     private bool IsTollFreeVehicle(Vehicle vehicle)
     {
-      return TollFreVehiclesTypes.Contains(vehicle.VehicleType);
+      return tollFreVehiclesTypes.Contains(vehicle.VehicleType);
     }
 
     private bool IsTollFreeDate(DateTime date)
     {
+      if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday)
+        return true;
+
       int year = date.Year;
       int month = date.Month;
       int day = date.Day;
 
-      if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday) return true;
-
-      if (year == 2013)
-      {
-        if (month == 1 && day == 1 ||
-            month == 3 && (day == 28 || day == 29) ||
-            month == 4 && (day == 1 || day == 30) ||
-            month == 5 && (day == 1 || day == 8 || day == 9) ||
-            month == 6 && (day == 5 || day == 6 || day == 21) ||
-            month == 7 ||
-            month == 11 && day == 1 ||
-            month == 12 && (day == 24 || day == 25 || day == 26 || day == 31))
-        {
-          return true;
-        }
-      }
-      return false;
+      return holidays.Any(h => h.Year == year && h.Month == month && (h.Day == day || h.Day == day + 1));
     }
   }
 }

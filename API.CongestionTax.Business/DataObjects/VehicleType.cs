@@ -8,7 +8,8 @@
     Diplomat = 4,
     Foreign = 5,
     Military = 6,
-    Car = 7,
-    Other = 8
+    Bus = 7,
+    Car = 8,
+    Other = 9
   }
 }
