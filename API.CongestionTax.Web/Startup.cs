@@ -8,6 +8,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using System;
+using System.IO;
 
 namespace API.CongestionTax.Web
 {
@@ -27,6 +29,8 @@ namespace API.CongestionTax.Web
       services.AddSwaggerGen(c =>
       {
         c.SwaggerDoc("v1", new OpenApiInfo { Title = "API.CongestionTax", Version = "v1" });
+        var filePath = Path.Combine(AppContext.BaseDirectory, "API.CongestionTax.Web.xml");
+        c.IncludeXmlComments(filePath, true);
       });
 
       ConfigureDependencies(services);
