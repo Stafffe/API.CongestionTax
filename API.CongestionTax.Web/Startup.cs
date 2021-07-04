@@ -1,5 +1,7 @@
 using API.CongestionTax.Business.Business;
 using API.CongestionTax.Business.Interfaces;
+using API.CongestionTax.Data.Interfaces;
+using API.CongestionTax.Data.Providers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -54,7 +56,8 @@ namespace API.CongestionTax.Web
 
     private void ConfigureDependencies(IServiceCollection services)
     {
-      services.AddTransient<ICongestionTaxCalculator, CongestionTaxCalculator>();
+      services.AddSingleton<ICongestionTaxCalculator, CongestionTaxCalculator>();
+      services.AddTransient<ITaxationInfoProvider, DatabaseProvider>();
     }
   }
 }

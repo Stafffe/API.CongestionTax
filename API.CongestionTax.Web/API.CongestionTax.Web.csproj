@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\API.CongestionTax.Business\API.CongestionTax.Business.csproj" />
+    <ProjectReference Include="..\API.CongestionTax.Data\API.CongestionTax.Data.csproj" />
   </ItemGroup>
 
 </Project>

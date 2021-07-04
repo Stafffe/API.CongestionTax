@@ -1,4 +1,4 @@
-﻿namespace API.CongestionTax.Business.DataObjects
+﻿namespace API.CongestionTax.Data.Enums
 {
   public enum VehicleType
   {

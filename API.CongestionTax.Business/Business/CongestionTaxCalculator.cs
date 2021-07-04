@@ -1,6 +1,9 @@
 using API.CongestionTax.Business.DataObjects;
 using API.CongestionTax.Business.Extensions;
 using API.CongestionTax.Business.Interfaces;
+using API.CongestionTax.Data.DataObjects;
+using API.CongestionTax.Data.Enums;
+using API.CongestionTax.Data.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,30 +12,21 @@ namespace API.CongestionTax.Business.Business
 {
   public class CongestionTaxCalculator : ICongestionTaxCalculator
   {
-    private const int SingleChargeIntervalInMilliseconds = 60000; //1min
-    private readonly VehicleType[] tollFreVehiclesTypes = new VehicleType[] {
-      VehicleType.Emergency,
-      VehicleType.Bus,
-      VehicleType.Diplomat,
-      VehicleType.Motorcycle,
-      VehicleType.Military,
-      VehicleType.Foreign
-    };
-    private readonly DateTime[] holidays = new DateTime[] {
-        new DateTime(2013, 1, 1),
-        new DateTime(2013, 1, 6),
-        new DateTime(2013, 3, 29),
-        new DateTime(2013, 3, 31),
-        new DateTime(2013, 4, 1),
-        new DateTime(2013, 5, 1),
-        new DateTime(2013, 5, 9),
-        new DateTime(2013, 5, 19),
-        new DateTime(2013, 6, 6),
-        new DateTime(2013, 6, 22),
-        new DateTime(2013, 11, 2),
-        new DateTime(2013, 12, 25),
-        new DateTime(2013, 12, 26)
-      };
+
+    public CongestionTaxCalculator(ITaxationInfoProvider taxationInfoProvider)
+    {
+      _taxationInfoProvider = taxationInfoProvider;
+    }
+
+    private readonly ITaxationInfoProvider _taxationInfoProvider;
+
+    private bool _initialized = false;
+    static readonly object _lockObject = new();
+
+    private int _singleChargeIntervalInMilliseconds;
+    private VehicleType[] _tollFreVehiclesTypes;
+    private DateTime[] _holidays;
+    private TaxationTimeInfo[] _taxationTimeInfos;
 
     /// <summary>
     /// Calculate the total toll fee for one day
@@ -42,6 +36,9 @@ namespace API.CongestionTax.Business.Business
     /// <returns>The total congestion tax for that day</returns>
     public int GetTax(Vehicle vehicle, DateTime[] dates)
     {
+      if (!_initialized)
+        InitializeTaxationParams();
+
       dates = dates.OrderBy(d => d).ToArray();
 
       var totalFee = GetTaxRecursive(dates, 0, vehicle);
@@ -79,7 +76,7 @@ namespace API.CongestionTax.Business.Business
 
       foreach (var date in dates.Skip(1))
       {
-        if (firstDate.Millisecond - date.Millisecond > SingleChargeIntervalInMilliseconds)
+        if (firstDate.Millisecond - date.Millisecond > _singleChargeIntervalInMilliseconds)
           dateList.Add(date);
         else
           break;
@@ -94,32 +91,14 @@ namespace API.CongestionTax.Business.Business
         return 0;
 
       var time = date.TimeOfDay;
+      var taxationTimeInfo = _taxationTimeInfos.FirstOrDefault(tti => time.IsBetween(tti.StartTime, tti.EndTime));
 
-      if (time.IsBetween(new TimeSpan(6, 00, 00), new TimeSpan(6, 29, 00)))
-        return 8;
-      else if (time.IsBetween(new TimeSpan(6, 30, 00), new TimeSpan(6, 59, 00)))
-        return 13;
-      else if (time.IsBetween(new TimeSpan(7, 00, 00), new TimeSpan(7, 59, 00)))
-        return 18;
-      else if (time.IsBetween(new TimeSpan(8, 00, 00), new TimeSpan(8, 29, 00)))
-        return 13;
-      else if (time.IsBetween(new TimeSpan(8, 30, 00), new TimeSpan(14, 59, 00)))
-        return 8;
-      else if (time.IsBetween(new TimeSpan(15, 00, 00), new TimeSpan(15, 29, 00)))
-        return 13;
-      else if (time.IsBetween(new TimeSpan(15, 30, 00), new TimeSpan(16, 59, 00)))
-        return 18;
-      else if (time.IsBetween(new TimeSpan(17, 00, 00), new TimeSpan(17, 59, 00)))
-        return 13;
-      else if (time.IsBetween(new TimeSpan(18, 00, 00), new TimeSpan(18, 29, 00)))
-        return 8;
-      else
-        return 0;
+      return taxationTimeInfo == null ? 0 : taxationTimeInfo.Taxation;
     }
 
     private bool IsTollFreeVehicle(Vehicle vehicle)
     {
-      return tollFreVehiclesTypes.Contains(vehicle.VehicleType);
+      return _tollFreVehiclesTypes.Contains(vehicle.VehicleType);
     }
 
     private bool IsTollFreeDate(DateTime date)
@@ -131,7 +110,23 @@ namespace API.CongestionTax.Business.Business
       int month = date.Month;
       int day = date.Day;
 
-      return holidays.Any(h => h.Year == year && h.Month == month && (h.Day == day || h.Day == day + 1));
+      return _holidays.Any(h => h.Year == year && h.Month == month && (h.Day == day || h.Day == day + 1));
+    }
+
+    private void InitializeTaxationParams()
+    {
+      lock (_lockObject)
+      {
+        if (_initialized)
+          return;
+
+        _singleChargeIntervalInMilliseconds = _taxationInfoProvider.GetTaxationIntervalLength(Cities.Gothenburg) * 1000;
+        _tollFreVehiclesTypes = _taxationInfoProvider.GetTollFreeVehicleTypes(Cities.Gothenburg);
+        _holidays = _taxationInfoProvider.GettHolidays();
+        _taxationTimeInfos = _taxationInfoProvider.GetTaxationTimeInfos(Cities.Gothenburg);
+
+        _initialized = true;
+      }
     }
   }
 }

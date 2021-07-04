@@ -1,5 +1,6 @@
 ﻿using API.CongestionTax.Business.DataObjects;
 using API.CongestionTax.Business.Interfaces;
+using API.CongestionTax.Data.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
