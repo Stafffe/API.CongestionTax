@@ -9,7 +9,7 @@
             Gets the sum of taxation for a number of dates
             </summary>
             <param name="vehicleType">The type of vehicle taxed. Motorcycle = 1, Tractor = 2, Emergency = 3, Diplomat = 4, Foreign = 5, Military = 6, Bus = 7, Car = 8, Other = 9</param>
-            <param name="datesForTaxations">The occurences of passages for the vehicle</param>
+            <param name="datesForTaxations">The occurences of passages for the vehicle. Format YYYY-MM-DD HH:mm:ss</param>
             <returns></returns>
         </member>
     </members>
