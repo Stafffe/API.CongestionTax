@@ -1,0 +1,7 @@
+These questions are all added in Readme.md exactly the same but the assignment requested a file named questions.md so I'll add it here aswell just in case.
+
+## My questions
+The requirement of the application does not say anything about tractors being tax-free but the code did. This is something I would talk with a product owner about. <br /><br />
+I do not quite understand how the time intervalls are supoused to work. I have two questions about the subject. If I have 3 occurences within 60mins and then another one 5mins after, does that group itself with the first 3 as 1 intervall and the last one alone? Or can tax-occurences overlap for 2 different time-intervals? I would quess that they can't, but I'm not sure.<br />
+The other question I have would be if the first occurence was tax-free. Would that start a time-interval? Lets say I have a time interval starting with a tax-free occurance followed by a tax-requiering occurance 30mins later followed by another tax-occurance 40min later. Would the person in this case be taxed once or twice? I have personally no idea so would have liked to talk with a product owner for this case. In my code I decided to place it as 2 taxes.<br /><br />
+What was the dates for? I quess it had something to do with testing of the application. 

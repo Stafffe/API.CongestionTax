@@ -22,15 +22,17 @@ You can add occurances for datesForTaxations with format YYYY-MM-DD HH:mm:ss.
 <b>Real database:</b> I did not feel like building and hosting a database. Was lazy and just returned mocked data that matches the original test-code. If desired I could in the future make a database if that would prove my competence.<br />
 <b>Swagger documentation:</b> I've put minimal effort into the swagger documentation/the url-structure. It could probably be improved. <br />
 <b>Tests:</b> I've only put tests on the main file CongestionTaxCalculator.cs. This should be extended to the whole project in a real application. Some integration tests might be nice aswell<br />
-<b>Validations:</b> Could probably add better support for wrongly inputed data to the api. As of now there is where little validations.
+<b>Validations:</b> Could probably add better support for wrongly inputed data to the api. As of now there is where little validations. <br />
+<b>More customability:</b> Could add more customability between cities. For example do we always want to allow tax-free days the day before holiday? Or always free on Saturday/Sunday?
 
 ## Buggs i found
 I saw that a string comparision for vehicle types was off. Motorbike was written Motorcycle in a different part of the code which made it never match. Seems to me like they are the same thing. <br />
 Taxations interval was wrongly calculated and would have resulted in really weird output if not changed. <br />
 Time comparision was wrongly written with .millisecounds which would not result in correct calculations. <br />
-Probably more but the code was hard to read so i refactored it and in the process the buggs should be fixed.
+Probably more, the code was written in a way that left it easily open for mistakes so i refactored it and in the process the buggs should be fixed.
 
 ## My questions
 The requirement of the application does not say anything about tractors being tax-free but the code did. This is something I would talk with a product owner about. <br /><br />
 I do not quite understand how the time intervalls are supoused to work. I have two questions about the subject. If I have 3 occurences within 60mins and then another one 5mins after, does that group itself with the first 3 as 1 intervall and the last one alone? Or can tax-occurences overlap for 2 different time-intervals? I would quess that they can't, but I'm not sure.<br />
 The other question I have would be if the first occurence was tax-free. Would that start a time-interval? Lets say I have a time interval starting with a tax-free occurance followed by a tax-requiering occurance 30mins later followed by another tax-occurance 40min later. Would the person in this case be taxed once or twice? I have personally no idea so would have liked to talk with a product owner for this case. In my code I decided to place it as 2 taxes.<br /><br />
+What was the dates for? I quess it had something to do with testing of the application. 
