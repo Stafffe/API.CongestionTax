@@ -57,7 +57,7 @@ namespace API.CongestionTax.Web
     private void ConfigureDependencies(IServiceCollection services)
     {
       services.AddSingleton<ICongestionTaxCalculator, CongestionTaxCalculator>();
-      services.AddTransient<ITaxationInfoProvider, DatabaseProvider>();
+      services.AddTransient<ITaxationInfoProvider, MockedDatabaseProvider>();
     }
   }
 }

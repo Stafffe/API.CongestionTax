@@ -5,14 +5,19 @@ using System;
 
 namespace API.CongestionTax.Data.Providers
 {
-  public class DatabaseProvider : ITaxationInfoProvider
+  /// <summary>
+  /// This is an example of the kind of data a databaseprovider could return.
+  /// For example of how I would create a real database provider, please view following links:
+  /// Provider: https://github.com/Stafffe/API.Customer/blob/master/API.Customer.Data/Providers/DatabaseProvider.cs
+  /// </summary>
+  public class MockedDatabaseProvider : ITaxationInfoProvider
   {
     public int GetTaxationIntervalLength(Cities gothenburg)
     {
       return 60;
     }
 
-    public DataObjects.TaxationTimeInfo[] GetTaxationTimeInfos(Cities gothenburg)
+    public TaxationTimeInfo[] GetTaxationTimeInfos(Cities gothenburg)
     {
       return new TaxationTimeInfo[] {
         new TaxationTimeInfo {

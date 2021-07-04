@@ -12,21 +12,18 @@ namespace API.CongestionTax.Business.Business
 {
   public class CongestionTaxCalculator : ICongestionTaxCalculator
   {
+    private readonly ITaxationInfoProvider _taxationInfoProvider;
+    private bool _initialized = false;
+    static readonly object _lockObject = new();
+    private int _singleChargeIntervalInMinutes;
+    private VehicleType[] _tollFreVehiclesTypes;
+    private DateTime[] _holidays;
+    private TaxationTimeInfo[] _taxationTimeInfos;
 
     public CongestionTaxCalculator(ITaxationInfoProvider taxationInfoProvider)
     {
       _taxationInfoProvider = taxationInfoProvider;
     }
-
-    private readonly ITaxationInfoProvider _taxationInfoProvider;
-
-    private bool _initialized = false;
-    static readonly object _lockObject = new();
-
-    private int _singleChargeIntervalInMilliseconds;
-    private VehicleType[] _tollFreVehiclesTypes;
-    private DateTime[] _holidays;
-    private TaxationTimeInfo[] _taxationTimeInfos;
 
     /// <summary>
     /// Calculate the total toll fee for one day
@@ -39,15 +36,35 @@ namespace API.CongestionTax.Business.Business
       if (!_initialized)
         InitializeTaxationParams();
 
+      if (dates.Length == 0)
+        return 0;
+
       dates = dates.OrderBy(d => d).ToArray();
 
-      var totalFee = GetTaxRecursive(dates, 0, vehicle);
-
+      var totalFee = GetTaxRecursive(dates, vehicle);
       return totalFee > 60 ? 60 : totalFee;
     }
 
-    private int GetTaxRecursive(DateTime[] dates, int totalFee, Vehicle vehicle)
+    private void InitializeTaxationParams()
     {
+      lock (_lockObject)
+      {
+        if (_initialized)
+          return;
+
+        _singleChargeIntervalInMinutes = _taxationInfoProvider.GetTaxationIntervalLength(Cities.Gothenburg);
+        _tollFreVehiclesTypes = _taxationInfoProvider.GetTollFreeVehicleTypes(Cities.Gothenburg);
+        _holidays = _taxationInfoProvider.GettHolidays();
+        _taxationTimeInfos = _taxationInfoProvider.GetTaxationTimeInfos(Cities.Gothenburg);
+
+        _initialized = true;
+      }
+    }
+
+    private int GetTaxRecursive(DateTime[] dates, Vehicle vehicle)
+    {
+      int totalFee = 0;
+
       var datesWithin60Mins = GetDatesWithinInterval(dates);
       var nextDatesToCheck = dates.Skip(datesWithin60Mins.Length).ToArray();
 
@@ -63,7 +80,7 @@ namespace API.CongestionTax.Business.Business
 
       if (nextDatesToCheck.Length > 0)
       {
-        totalFee += GetTaxRecursive(nextDatesToCheck, totalFee, vehicle);
+        totalFee += GetTaxRecursive(nextDatesToCheck, vehicle);
       }
 
       return totalFee;
@@ -71,12 +88,12 @@ namespace API.CongestionTax.Business.Business
 
     private DateTime[] GetDatesWithinInterval(DateTime[] dates)
     {
-      var firstDate = dates[0];
-      var dateList = new List<DateTime> { firstDate };
+      var maxDate = dates[0].AddMinutes(_singleChargeIntervalInMinutes);
+      var dateList = new List<DateTime>();
 
-      foreach (var date in dates.Skip(1))
+      foreach (var date in dates)
       {
-        if (firstDate.Millisecond - date.Millisecond > _singleChargeIntervalInMilliseconds)
+        if (date < maxDate)
           dateList.Add(date);
         else
           break;
@@ -110,23 +127,7 @@ namespace API.CongestionTax.Business.Business
       int month = date.Month;
       int day = date.Day;
 
-      return _holidays.Any(h => h.Year == year && h.Month == month && (h.Day == day || h.Day == day + 1));
-    }
-
-    private void InitializeTaxationParams()
-    {
-      lock (_lockObject)
-      {
-        if (_initialized)
-          return;
-
-        _singleChargeIntervalInMilliseconds = _taxationInfoProvider.GetTaxationIntervalLength(Cities.Gothenburg) * 1000;
-        _tollFreVehiclesTypes = _taxationInfoProvider.GetTollFreeVehicleTypes(Cities.Gothenburg);
-        _holidays = _taxationInfoProvider.GettHolidays();
-        _taxationTimeInfos = _taxationInfoProvider.GetTaxationTimeInfos(Cities.Gothenburg);
-
-        _initialized = true;
-      }
+      return _holidays.Any(h => h.Year == year && h.Month == month && (h.Day == day || h.Day - 1 == day));   //Free on holidays + the day before
     }
   }
 }
